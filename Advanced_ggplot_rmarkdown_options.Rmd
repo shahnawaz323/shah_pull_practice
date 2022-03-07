@@ -1,0 +1,193 @@
+---
+title: "Project practice graphs on ggplot"
+author: "shah nawaz"
+date: "3/6/2022"
+output: html_document
+---
+
+#YAML header above for Rmd document
+
+
+<!--- knitr code chunk global options -->
+
+```{r setup, include=F}
+knitr::opts_chunk$set(
+   echo = FALSE, fig.width = 6, warning=FALSE,message=FALSE,results='hide',fig.pos = 'H',out.width='70%'
+)
+options(knitr.graphics.auto_pdf = TRUE)
+```
+
+* In the above code chunk of R in R markdown file we set the global options for the whole R markdown document. Let me explain the options I used one by one 
+* **echo=False** means the code will not show up in the output deocument for all the code chunks used in the R markdown document. 
+* **fig.width** and *fig.pos** used to set figure width and position will help to put the output figures at the code chunk position. It will only work for R code chunks not for python code chunks.
+* **out.width** will help to set the figure width with respect to width of page. In 2 column research article it will be placed in the middle of the column width. 
+* **warning=False** will delete the code warnings from the chunks
+* **message=False** will delete the messages from the code chunks. It is specially useful for python code chunks and we will not get the matplotlib messages in the output html document.
+* **results='hide'** will hide results for the chunks where we don't want the code outputs. More details below
+* **knitr.grahpics** to get pdf quality figures from R code chunks
+
+## Importing libraries 
+```{r libraries}
+
+# Renaming code chunk as libararies
+
+library(reticulate) # to use python code chunks
+library(ggplot2) # to plot ggplots in R chunks
+library(dplyr) # for data wrangling 
+library(readr) # to read csv and xlsx files
+library(data.table) # to make data tables output
+library(plyr)
+library(plotly) # to get html figure outputs using ggplotly. Only R-programminh has this option to convert ggplot outputs to plotly just by calling this library
+library(babynames) # to get special fonts
+library(extrafont) # to get customized fonts
+library(tidyverse)
+library(lubridate)
+library(stringr) #string operations 
+library(haven)
+library(knitr) #to knit document to html or pdf etc
+library(ggrepel)
+library(patchwork) # to combine plots without using facet_write
+
+```
+## Using anaconda python version instead of reticulate version 
+To use anaconda python version instead of reticulate miniconda version we use following 
+```{r Python-conversion}
+use_python("/opt/anaconda3/bin/python",required=TRUE)
+```
+
+## Python chunk global options
+To import python packages globally. Note that I have used python instead of R after { bracket. in this way the chunk will work as python code and will use python version we gave above. 
+```{python python-packages-import}
+
+import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt
+
+```
+
+## Python chunk
+To plot 1st figure with python chunk. The path to file is given from a folder in `Pandas` read table command. 
+```{python Test1-plot, fig.cap="The shear stress evolution in Test1. CNL=100 kPA, Dr=Dense, Shearing speed=0.1mm/min"}
+
+#-----------importing dataset in form of pandas dataframe------------------
+data = pd.read_table("../gb_cyc_csv/T9_gb_cyc.csv",sep=',',decimal='.',low_memory=False,header=0)
+
+#--------------Exporting columns with custom column names----------------
+
+X = data[data.keys()[3]]
+X = np.array(X)  
+TS = data[data.keys()[9]] 
+TS = np.array(TS)
+N = data[data.keys()[15]]
+N = np.array(N)
+
+# data["CN"] = (data.N.shift().bfill() != data.N).astype(int).cumsum()
+CN = data[data.keys()[20]]
+CN= np.array(CN)
+
+# ---------setting global options for the matplotlib figure -----------------
+plt.rcParams.update({'figure.figsize':[5,5]})
+plt.rcParams.update({'axes.labelsize':10})
+plt.rcParams.update({'font.size':8})
+plt.rcParams.update({'ytick.labelsize':'x-large'})
+plt.rcParams.update({'xtick.labelsize':'x-large'})
+plt.rcParams.update({'figure.autolayout':True})
+plt.grid(visible=True)
+plt.rcParams.update({'figure.autolayout':True})
+plt.ylim(ymin=min(TS)-10,ymax=max(TS)+10)
+plt.xlabel('Shear Displacement (mm)')
+plt.ylabel('Stress ratio ($\tau/\sigma_n$)')
+plt.xlim(xmin=min(X)-0.03,xmax=max(X)+0.03)
+
+# ------------Plotting matplotlib.pyplot figure with mutiple lines ----------------------          
+
+plt.plot(X[CN==13],TS[CN==13],label='Last cycle of 1st amplitude',linestyle='solid',color='r',marker='x',markersize=2),     
+plt.plot(X[CN==21],TS[CN==21],label='Last cycle of 2nd amplitude',linestyle='solid',color='g',markersize=2,marker='o',markerfacecolor='w',markeredgecolor='g',),    
+plt.plot(X[CN==34],TS[CN==34],label='Last cycle of 3rd amplitude',linestyle='solid',color='orange',    markerfacecolor='w',markersize=2,marker='s',
+         markeredgewidth=.5, markeredgecolor='k'), 
+plt.plot(X[CN==15],TS[CN==15],label='Shifting cycles',linewidth=1,color='b')
+plt.plot(X[CN==22],TS[CN==22],linewidth=1,color='b')
+plt.plot(X[CN==1],TS[CN==1],label='first cycle of 1st amplitude',linewidth=1,color='brown',marker='h',markerfacecolor='w',markeredgecolor='brown',markersize=2),  
+plt.plot(X[CN==16],TS[CN==16],label='first cycle of 2nd amplitude',linewidth=1, color='aqua',marker='d',markerfacecolor='w',markeredgecolor='aqua',markersize=2),  
+plt.plot(X[CN==24],TS[CN==24],label='first cycle of 3rd amplitude',linewidth=1,color='violet',marker='p',markersize=2,markerfacecolor='w',markeredgecolor='violet'),    
+plt.legend(bbox_to_anchor=(0, 1, 1, 0), loc="lower left", mode="expand", ncol=2) 
+plt.show()
+
+```
+
+
+## Reading all csv files from a folder and adding a column in the dataframe with the file names. 
+
+```{r combined-csv-files}
+all_paths <-
+  list.files(path = "../gb_cyc_csv",
+             pattern = "*.csv",
+             full.names = TRUE)
+
+all_content <-
+  all_paths %>%
+  lapply(read.table,
+         header = TRUE,
+         sep = ",",
+         encoding = "UTF-8")
+
+all_filenames <- all_paths %>%
+  basename() %>%
+  as.list()
+
+all_lists <- mapply(c, all_content, all_filenames, SIMPLIFY = FALSE)
+
+data <- rbindlist(all_lists, fill = T)
+# change column name
+names(data)[1] <- "File.Path"
+
+```
+
+## R ggplot chunk 
+
+```{r}
+CPCOLS <- c("#1f78b4","#EB2F2F") #setting color values if use geom_point 
+
+# Data filtering using dplyr package
+
+ data %>% filter(V1 %in% c("T6_gb_cyc.csv","T8_gb_cyc.csv")) %>% filter(Time..s.>100) %>% filter(Cycles.for.each.amplitude>=1 & Cycles.for.each.amplitude<3) %>% 
+
+# ggploting the filtered data
+
+ggplot() +
+  aes(
+    x = Shear.Displacement..mm.,
+    y = Stress.ratio,
+    color=V1
+  ) +
+  
+  # Using geom_point to plot the scatter plot
+  
+  geom_point(size = 0.5)  +scale_color_manual(values=CPCOLS)+
+  
+  # setting x,y labels on graph 
+  labs(color = "Test name",x="Shear Displacement (mm)",y="Stress ratio")+
+  
+  # setting theme of ggplot 
+  ggthemes::theme_base() +
+  
+  # Editing the legend size and appearance in the graph 
+  theme(legend.key.size = unit(1, 'cm'), #change legend key size
+        legend.key.height = unit(1, 'cm'), #change legend key height
+        legend.key.width = unit(1, 'cm'), #change legend key width
+        legend.title = element_text(size=12),legend.justification=c(1,0), legend.position=c(1,0),#change legend title c("#EB2F2F", "#FFFFFF", "#FFFFFF")font size
+        legend.text = element_text(size=8)+
+  #Using the extra font package to use custom font family. 
+        
+        text=element_text(family="Rubik")+
+        
+        # Using custom labels in legend 
+        
+        scale_colour_discrete(labels = c('Test14 @ 0.1mm/min', 'Test15 @1mm/min')))
+
+```
+
+
+
+
+
