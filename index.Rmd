@@ -1,0 +1,88 @@
+---
+title: "Advanced Dashboarding"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: row
+    vertical_layout: fill
+    social: ["menu"]
+    source_code: embed
+    theme:
+      version: 4 
+      bootswatch: sandstone
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(palmerpenguins)
+library(DT)
+library(fontawesome)
+data("penguins")
+```
+
+
+Plots {data-navmenu="Pages"}
+==================================================
+
+sidebar {.sidebar}
+--------------------------------------------------
+
+### Pinguin Stats
+
+The number of pinguins in the data `r nrow(penguins)`
+
+Row 
+------------------------------------
+
+### Number of Penguins
+```{r}
+valueBox(nrow(penguins),icon = 'fa-linux')
+
+```
+
+
+
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+a = penguins %>% ggplot(aes(x=bill_length_mm,bill_depth_mm,color=species))+
+  geom_point()
+
+ggplotly(a)
+```
+
+
+### Chart B
+
+```{r}
+b = penguins %>% ggplot(aes(x=body_mass_g,y=sex,fill=sex))+
+  geom_boxplot()
+
+ggplotly(b) 
+```
+
+### Chart C
+
+```{r}
+c = penguins %>% ggplot(aes(x=flipper_length_mm,fill=species))+
+  geom_histogram()+
+  facet_wrap(~species)
+
+ggplotly(c) 
+```
+
+Data {data-navmenu="Pages"}
+=============================================================
+
+```{r}
+penguins %>% datatable(extensions = "Buttons",
+  options = list(dom='Blfrtip',
+                 buttons = c("copy","csv", "excel","pdf","print")))
+
+```
+
