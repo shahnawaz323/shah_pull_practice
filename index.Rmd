@@ -41,7 +41,19 @@ valueBox(nrow(penguins),icon = 'fa-linux')
 
 ```
 
+### Average body mass
 
+```{r}
+avg_mass = round(mean(penguins$body_mass_g,na.rm=T),1)
+
+gauge(avg_mass,
+      min(0),
+      max= max(penguins$body_mass_g,na.rm = T),
+      gaugeSectors(success = c(4000,6300),
+                   warning= c(2000,3999),
+                   danger = c(0,1999)))
+
+```
 
 
 Column {.tabset}
